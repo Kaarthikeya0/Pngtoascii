@@ -1,0 +1,23 @@
+1. Load png file into memory
+2. Make png into grayscale
+3. Turn a region into one average (eg 3x3 grid into one pixel) (make the picture shittier)
+4. Turn that value into a char (need to work out the luminosity of each char)
+5. Output that to command line or file depending on whether output file is given
+
+Command line flags required 
+Number of columns (--Rowlength) (need to work out default later)
+Input file (-i)
+Output file (-o) (out.txt default)
+Help (-h) (provide quick start)
+
+
+PNG chunks I care about alot at first
+IHDR
+IDAT
+IEND
+
+To load png file into memory, 
+1. Need to check if it is actually a png file
+    a. First 8 bytes match pattern (137 80 78 71 13 10 26 10)
+    b. Next 4 bytes result in the number (13)
+    c. 4 bytes after that results in char chunk_code[4] == IHDR (image header)
