@@ -7,7 +7,7 @@ OBJ_DIR = obj
 
 SRC = $(wildcard $(SRC_DIR)/*.c)
 OBJ = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC))
-BIN = asciiart
+BIN = asciiart.out
 
 all: $(BIN)
 
