@@ -55,21 +55,6 @@ bool has_ihdr(FILE *file) {
     return true;
 }
 
-// Returns a struct containing the details stored in IHDR, assumes that IHDR exists and seeks to byte number 16 (header: 8, length number: 4, chunk code: 4)
-struct imageHeader get_image_header(FILE *image) {
-    struct imageHeader hdr = {0};
-    fseek(image, 16, SEEK_SET);
-    hdr.width = read_bytes_be32(image);
-    hdr.height = read_bytes_be32(image);
-    hdr.bit_depth = read_byte(image);
-    hdr.colour_type = read_byte(image);
-    hdr.compression_method = read_byte(image);
-    hdr.filter_method = read_byte(image);
-    hdr.interlace_method = read_byte(image);
-    
-    return hdr;
-}
-
 // Returns a true or false value depending on whether the bit depth and colour type are compatible
 // false if incompatible OR colour type doesnt exist
 // true if compatible
@@ -126,4 +111,3 @@ bool check_bit_depth_vs_colour_type(struct imageHeader hdr) {
 
     return flag;
 }
-

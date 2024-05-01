@@ -1,7 +1,9 @@
 #include "../src/hdr/pngtests.h"
+#include "../src/hdr/getchunkdata.h"
 #include "../src/hdr/structs.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 int main(void)
 {
@@ -45,6 +47,29 @@ int main(void)
     else {
         printf("SUCCESS: bool check_bit_depth_vs_colour_type(struct imageHeader hdr)\n");
     }
+
+    //test get_palette 
+    FILE *paletteparsy = fopen("tests/plteparse.png", "r");
+    if (paletteparsy == NULL) {
+        perror("bruh your file path is wrong somehow");
+        return 1;
+    }
+
+    fseek(paletteparsy, 0x31, SEEK_SET);
+    plteArray palette = get_colour_palette(paletteparsy, 2);
+    char color1[7] = "AAAAAA";
+    char color2[7] = "AAAAAA";
+    char *colours[7] = {"EEFF22", "2266FF"};
+    sprintf(color1, "%02X%02X%02X", (*palette.pltearray)[0].red,(*palette.pltearray)[0].green, (*palette.pltearray)[0].blue);
+    sprintf(color2, "%02X%02X%02X", (*palette.pltearray)[1].red,(*palette.pltearray)[1].green, (*palette.pltearray)[1].blue);
+    if (strcmp(color1, colours[0]) == 0 && strcmp(color2, colours[1]) == 0) {
+        printf("SUCCESS: plteArray get_colour_palette(FILE *image, uint32_t nmemb)\n");
+    }
+    else {
+        printf("FAILED: plteArray get_colour_palette(FILE *image, uint32_t nmemb)\n");
+        printf("COLOURS: %s, %s\n", color1, color2);
+    }
+    
     
 
 

@@ -13,5 +13,16 @@ struct imageHeader {
     uint8_t interlace_method;
 };
 
+typedef struct triple {
+    uint8_t red;
+    uint8_t green;
+    uint8_t blue;
+    
+} triple;
+
+typedef struct plteArray {
+    uint32_t nmemb;
+    triple **pltearray;
+} plteArray;
 
 #endif // !STRUCTS_H

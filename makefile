@@ -19,7 +19,7 @@ $(BIN): $(OBJ)
 
 pngtest:
 	gcc $(CFLAGS) -c tst/test_pngtests.c -o obj/test_pngtests.o 
-	gcc $(CFLAGS) obj/pngtests.o obj/test_pngtests.o obj/gettingbyte.o -o test_pngtests.out
+	gcc $(CFLAGS) obj/pngtests.o obj/test_pngtests.o obj/gettingbyte.o obj/getchunkdata.o -o test_pngtests.out
 
 clean:
 	rm $(OBJ)

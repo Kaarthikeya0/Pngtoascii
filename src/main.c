@@ -1,5 +1,6 @@
 // C headers
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,9 +9,9 @@
 // my headers
 #include "hdr/pngtests.h"
 #include "hdr/structs.h"
+#include "hdr/getchunkdata.h"
+#include "hdr/gettingbyte.h"
 
-
-// structs
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
@@ -43,6 +44,20 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "The image provided does not have the correct combination of bit depth and colour type\n");
         return 4;
     }
+
+    // skip CRC for IHDR (cannot be bothered atm)
+    fseek(image, 4, SEEK_CUR);
+
+    // now we are at the first chunk of the file that isnt IHDR
+    // get the length of the next chunk
+
+    char chunk_type[5];
+    char iend[] = "IEND";
+    while (strcmp(chun))
+    uint32_t chunk_length = read_bytes_be32(image);
+    fread(chunk_type, sizeof(char), 4, image);
+    chunk_type[4] = 0;
+
 
 
     printf("Woo no errors\n");

@@ -24,4 +24,4 @@ To load png file into memory,
     c. 4 bytes after that results in char chunk_code[4] == IHDR (image header)
 2. Check if there is a PLTE chunk
     a. Check if the PLTE chunk is valid (to do so check the chunk length % 3 == 0) && (colour type is 3, 2, 6 not 0 or 4) (compulsory for 3)
-    a. If there is a PLTE chunk process it into the memory (use a struct of RGB and an array of these triples)
+    a. If there is a PLTE chunk process it into the memory (use a struct of RGB and an array of these triples) this array will be malloced to ensure that it can work with different PLTE lengths
