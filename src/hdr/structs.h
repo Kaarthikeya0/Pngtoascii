@@ -20,9 +20,9 @@ typedef struct triple {
     
 } triple;
 
-typedef struct plteArray {
+typedef struct pltearray {
     uint32_t nmemb;
-    triple **pltearray;
+    triple *pltearray;
 } plteArray;
 
 #endif // !STRUCTS_H

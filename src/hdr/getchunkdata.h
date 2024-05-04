@@ -5,6 +5,6 @@
 #include <stdio.h>
 
 struct imageHeader get_image_header(FILE *image);
-plteArray get_colour_palette(FILE *image, uint32_t nmemb);
+void get_colour_palette(FILE *image, plteArray *colours);
 
 #endif // !GETCHUNKDATA_H
