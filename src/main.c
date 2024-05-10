@@ -13,6 +13,8 @@
 #include "hdr/getchunkdata.h"
 #include "hdr/gettingbyte.h"
 
+#define CHUNK 16384
+
 int main(int argc, char *argv[]) {
     if (argc != 2) {
         fprintf(stderr, "Usage: %s file.png\n", argv[0]);
@@ -54,6 +56,13 @@ int main(int argc, char *argv[]) {
     char chunk_type[5] = "HONK";
     char plte[] = "PLTE";
     char idat[] = "IDAT";
+    unsigned char *image_data = NULL;
+    unsigned char *uncompressed = malloc(CHUNK);
+    if (uncompressed == NULL) {
+        perror("malloc fail");
+        return 6;
+    }
+    int idata_size = 0;
     char iend[] = "IEND";
 
 
@@ -70,7 +79,10 @@ int main(int argc, char *argv[]) {
                 if (plt.pltearray == NULL) {
                     if (chunk_length % 3 == 0) {
                         plt.nmemb = chunk_length / 3;
-                        get_colour_palette(image, &plt);
+                        if (get_colour_palette(image, &plt)) {
+                            fprintf(stderr, "Reading PLTE chunk fail\n");
+                            return 5;
+                        }
                     }
                 }
                 else {
@@ -80,25 +92,21 @@ int main(int argc, char *argv[]) {
             }
             else if (strcmp(chunk_type, idat) == 0) {
                 if (hdr.colour_type == 3 && plt.pltearray == NULL) {
-                    printf("PLTE chunk couldnt be found before first IDAT chunk in colour type 3\n");
+                    fprintf(stderr, "PLTE chunk couldnt be found before first IDAT chunk in colour type 3\n");
                     return 5;
                 }
                 else {
-                    printf("data chunk!\n");
-                    unsigned char idata[chunk_length + 1];
-                    idata[chunk_length] = 0;
-                    fread(idata, sizeof(idata) - 1, 1, image);
-                    for (int i = 0; i < chunk_length; i++) {
-                        printf("%02X ", idata[i]);
+                    printf("data chunk of %d bytes\n", chunk_length);
+                    if (get_image_data(image, &image_data, &idata_size, chunk_length)) {
+                        return 6;
                     }
-                    putchar('\n');
                 }
             }
             else if (strcmp(chunk_type, iend) == 0){
                 continue;
             }
             else {
-                printf("Unrecognised critical chunk %s found\n", chunk_type);
+                fprintf(stderr, "Unrecognised critical chunk %s found\n", chunk_type);
                 return 6;
             }
         }
@@ -110,9 +118,26 @@ int main(int argc, char *argv[]) {
         fseek(image, 4, SEEK_CUR);
     }
 
+    FILE *deflated = fmemopen(image_data, idata_size * sizeof(unsigned char), "r");
+    FILE *inflated = fmemopen(uncompressed, CHUNK, "r+");
+    unsigned char c;
+    printf("Compressed read: \n");
+    while (fread(&c, sizeof(unsigned char), 1, deflated) == 1) {
+        printf("%02X ", c);
+    }
+    putchar(10);
 
+
+    printf("Uncompressed read: \n");
+    while (fread(&c, sizeof(unsigned char), 1, inflated) == 1) {
+        printf("%02X ", c);
+    }
+    putchar(10);
+
+
+    free(image_data);
     free(plt.pltearray);
-    printf("Woo no errors\n");
     fclose(image);
+    printf("Woo no errors\n");
     return EXIT_SUCCESS;
 }

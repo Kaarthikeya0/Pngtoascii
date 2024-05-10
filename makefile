@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS+= -fsanitize=signed-integer-overflow -fsanitize=undefined -ggdb3 -O0 -std=gnu11 -Wall -Werror -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wshadow 
-LDLIBS+= -lm -lc
+LDLIBS+= -lm -lc -lz
 
 SRC_DIR = src
 OBJ_DIR = obj
