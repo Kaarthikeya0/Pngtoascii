@@ -12,6 +12,7 @@
 #include "hdr/structs.h"
 #include "hdr/getchunkdata.h"
 #include "hdr/gettingbyte.h"
+#include "hdr/zlibtools.h"
 
 #define CHUNK 16384
 
@@ -57,8 +58,11 @@ int main(int argc, char *argv[]) {
     char plte[] = "PLTE";
     char idat[] = "IDAT";
     unsigned char *image_data = NULL;
-    unsigned char *uncompressed = malloc(CHUNK);
-    if (uncompressed == NULL) {
+    unsigned char *uncompressed_image_data = malloc(CHUNK);
+    int uncompressed_data_total_size = CHUNK;
+    int uncompressed_data_used_data = 0;
+
+    if (uncompressed_image_data == NULL) {
         perror("malloc fail");
         return 6;
     }
@@ -118,23 +122,29 @@ int main(int argc, char *argv[]) {
         fseek(image, 4, SEEK_CUR);
     }
 
-    FILE *deflated = fmemopen(image_data, idata_size * sizeof(unsigned char), "r");
-    FILE *inflated = fmemopen(uncompressed, CHUNK, "r+");
-    unsigned char c;
     printf("Compressed read: \n");
-    while (fread(&c, sizeof(unsigned char), 1, deflated) == 1) {
-        printf("%02X ", c);
+    for (int i = 0; i < idata_size; i++) {
+        printf("%02X ", image_data[i]);
+        if ((i + 1) % 8 == 0) {
+            putchar(10);
+        }
     }
     putchar(10);
 
+    if (decompress(image_data, idata_size, &uncompressed_image_data, &uncompressed_data_total_size, &uncompressed_data_used_data))
+        return 7;
 
+    printf("uncompressed_data_used_data = %d\n", uncompressed_data_used_data);
     printf("Uncompressed read: \n");
-    while (fread(&c, sizeof(unsigned char), 1, inflated) == 1) {
-        printf("%02X ", c);
+    for (int i = 0; i < uncompressed_data_used_data; i++) {
+        printf("%02X ", uncompressed_image_data[i]);
+        if ((i + 1) % 8 == 0) {
+            putchar(10);
+        }
     }
     putchar(10);
 
-
+    free(uncompressed_image_data);
     free(image_data);
     free(plt.pltearray);
     fclose(image);
