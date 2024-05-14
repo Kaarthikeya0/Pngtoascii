@@ -13,6 +13,7 @@
 #include "hdr/getchunkdata.h"
 #include "hdr/gettingbyte.h"
 #include "hdr/zlibtools.h"
+#include "hdr/data_parse.h"
 
 #define CHUNK 16384
 
@@ -42,10 +43,27 @@ int main(int argc, char *argv[]) {
     //skip to start of length of first chunk
     fseek(image, 8, SEEK_SET);
     struct imageHeader hdr = get_image_header(image);
+    printf("Width: %d\nHeight: %d\nBit Depth: %d\nColour Type: %d\nFilter Method: %d\nInterlace Method: %d\nCompression Method: %d\n", hdr.width, hdr.height, hdr.bit_depth, hdr.colour_type, hdr.filter_method, hdr.interlace_method, hdr.compression_method);
     bool valid_colour_bit_combination = check_bit_depth_vs_colour_type(hdr);
     if (!valid_colour_bit_combination) {
         fprintf(stderr, "The image provided does not have the correct combination of bit depth and colour type\n");
         return 4;
+    }
+
+    
+    if (hdr.compression_method != 0) {
+        fprintf(stderr, "Invalid compression method\n");
+        return 4;
+    }
+
+    if (hdr.filter_method != 0) {
+        fprintf(stderr, "Invalid filter method\n");
+        return 4;
+    }
+
+    if (hdr.interlace_method != 0) {
+        fprintf(stderr, "Cant be fucked to do interlaced images, bye!\n");
+        return 5;
     }
 
     // skip CRC for IHDR (cannot be bothered atm)
@@ -122,27 +140,45 @@ int main(int argc, char *argv[]) {
         fseek(image, 4, SEEK_CUR);
     }
 
-    printf("Compressed read: \n");
-    for (int i = 0; i < idata_size; i++) {
-        printf("%02X ", image_data[i]);
-        if ((i + 1) % 8 == 0) {
-            putchar(10);
-        }
-    }
-    putchar(10);
-
     if (decompress(image_data, idata_size, &uncompressed_image_data, &uncompressed_data_total_size, &uncompressed_data_used_data))
         return 7;
 
-    printf("uncompressed_data_used_data = %d\n", uncompressed_data_used_data);
+    point ImageSize = {.x = hdr.width, .y = hdr.height};
+    triple Image[ImageSize.y][ImageSize.y];
+    int scanline_len = uncompressed_data_used_data / hdr.height;
+    int bits_per_pixel = ((scanline_len - 1) * 8) / hdr.width;
+    int bytes_per_pixel = bits_per_pixel / 8;
+
+    printf("scanline_len = %d\n", scanline_len);
+    printf("bits_per_pixel = %d\n", bits_per_pixel);
+    printf("bytes_per_pixel = %d\n", bytes_per_pixel);
     printf("Uncompressed read: \n");
-    for (int i = 0; i < uncompressed_data_used_data; i++) {
-        printf("%02X ", uncompressed_image_data[i]);
-        if ((i + 1) % 8 == 0) {
-            putchar(10);
+
+    unsigned char prev_scanline[scanline_len];
+    unsigned char curr_scanline[scanline_len];
+    for (int scanline_num = 0; scanline_num < hdr.height; scanline_num++) {
+        if (scanline_num != 0) {
+            memcpy(prev_scanline, curr_scanline, scanline_len * sizeof(unsigned char));
         }
+        memcpy(curr_scanline, uncompressed_image_data + scanline_num * scanline_len, scanline_len * sizeof(unsigned char));
+
+        int filter_type = recon_scanline(curr_scanline, prev_scanline, scanline_len, scanline_num, bits_per_pixel, bytes_per_pixel);
+
+        if (filter_type == 9) {
+            return filter_type;
+        }
+
+        printf("filter_type = %d\n", filter_type);
+        for (int i = 0; i < scanline_len; i++) {
+            if (i == 0)
+                continue;
+            int curr_byte = curr_scanline[i];
+            printf("%02X ", curr_byte);
+        }
+        putchar(10);
+
+
     }
-    putchar(10);
 
     free(uncompressed_image_data);
     free(image_data);

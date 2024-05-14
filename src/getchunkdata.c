@@ -52,3 +52,4 @@ int get_image_data(FILE *image, unsigned char **ptr_to_image_data, int *ptr_to_i
     *ptr_to_idata_size += chunk_length;
     return 0;
 }
+

@@ -25,4 +25,9 @@ typedef struct pltearray {
     triple *pltearray;
 } plteArray;
 
+typedef struct point {
+    int x;
+    int y;
+} point;
+
 #endif // !STRUCTS_H
