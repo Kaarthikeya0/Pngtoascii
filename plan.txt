@@ -30,6 +30,7 @@ To load png file into memory,
     a. Check if the PLTE chunk is valid (to do so check the chunk length % 3 == 0) && (colour type is 3, 2, 6 not 0 or 4) (compulsory for 3)
     a. If there is a PLTE chunk process it into the memory (use a struct of RGB and an array of these triples) this array will be malloced to ensure that it can work with different PLTE lengths
 
+I want to check for the tRNS chunk later on so I can start displaying the ascii art better lol.
 
 
 decompression done

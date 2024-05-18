@@ -6,20 +6,16 @@
 
 int recon_scanline(unsigned char *curr_scanline, unsigned char *prev_scanline, int scanline_len, int scanline_num, int bits_per_pixel, int bytes_per_pixel) {
     uint8_t filter_type = curr_scanline[0];
+    if (bits_per_pixel < 8) {
+        bytes_per_pixel = 1;
+    }
     switch (filter_type) {
         case 0:
             break;
         case 1:
             for (int i = 1; i < scanline_len; i++) {
-                if (bits_per_pixel < 8) {
-                    if (i != 1) {
-                        curr_scanline[i] += curr_scanline[i - 1];
-                    }
-                }
-                else {
-                    if (i > bytes_per_pixel) {
-                        curr_scanline[i] += curr_scanline[i - bytes_per_pixel];
-                    }
+                if (i > bytes_per_pixel) {
+                    curr_scanline[i] += curr_scanline[i - bytes_per_pixel];
                 }
             }
             break;
@@ -34,7 +30,7 @@ int recon_scanline(unsigned char *curr_scanline, unsigned char *prev_scanline, i
             if (scanline_num != 0) {
                 for (int i = 1; i < scanline_len; i++) {
                     if (i != 1) {
-                        curr_scanline[i] += (prev_scanline[i] + curr_scanline[i - 1]) / 2;
+                        curr_scanline[i] += (prev_scanline[i] + curr_scanline[i - bytes_per_pixel]) / 2;
                     }
                 }
             }
@@ -43,7 +39,7 @@ int recon_scanline(unsigned char *curr_scanline, unsigned char *prev_scanline, i
             if (scanline_num != 0) {
                 for (int i = 1; i < scanline_len; i++) {
                     if (i != 1) {
-                        curr_scanline[i] += paeth_predictor(curr_scanline[i - 1], prev_scanline[i], prev_scanline[i - 1]);
+                        curr_scanline[i] += paeth_predictor(curr_scanline[i - bytes_per_pixel], prev_scanline[i], prev_scanline[i - bytes_per_pixel]);
                     }
                 }
             }
@@ -55,6 +51,7 @@ int recon_scanline(unsigned char *curr_scanline, unsigned char *prev_scanline, i
 
     return filter_type;
 }
+
 int paeth_predictor(int a, int b, int c) {
     int p = a + b - c;
     int pa = abs(p - a);

@@ -66,6 +66,11 @@ int main(int argc, char *argv[]) {
         return 5;
     }
 
+    if (hdr.bit_depth < 8) {
+        fprintf(stderr, "Not implemented yet!\n");
+        return 5;
+    }
+
     // skip CRC for IHDR (cannot be bothered atm)
     fseek(image, 4, SEEK_CUR);
 
@@ -98,17 +103,21 @@ int main(int argc, char *argv[]) {
         if (isupper(chunk_type[0])) {
 
             if (strcmp(chunk_type, plte) == 0) {
-                if (plt.pltearray == NULL) {
+                if (plt.pltearray == NULL && !(hdr.colour_type == 0 || hdr.colour_type == 4)) {
                     if (chunk_length % 3 == 0) {
                         plt.nmemb = chunk_length / 3;
                         if (get_colour_palette(image, &plt)) {
                             fprintf(stderr, "Reading PLTE chunk fail\n");
                             return 5;
                         }
+                        for (int i = 0; i < plt.nmemb; i++) {
+                            printf("Colour %02X: %02X%02X%02X", i + 1, plt.pltearray[i].red, plt.pltearray[i].green, plt.pltearray[i].blue);
+                            putchar(10);
+                        }
                     }
                 }
                 else {
-                    fprintf(stderr, "More than one PLTE chunk detected, stopping.\n");
+                    fprintf(stderr, "PLTE chunk invalid\n");
                     return 5;
                 }
             }
@@ -147,7 +156,7 @@ int main(int argc, char *argv[]) {
     triple Image[ImageSize.y][ImageSize.y];
     int scanline_len = uncompressed_data_used_data / hdr.height;
     int bits_per_pixel = ((scanline_len - 1) * 8) / hdr.width;
-    int bytes_per_pixel = bits_per_pixel / 8;
+    int bytes_per_pixel = (scanline_len - 1) / hdr.width;
 
     printf("scanline_len = %d\n", scanline_len);
     printf("bits_per_pixel = %d\n", bits_per_pixel);
@@ -168,7 +177,27 @@ int main(int argc, char *argv[]) {
             return filter_type;
         }
 
-        printf("filter_type = %d\n", filter_type);
+        FILE *scanline = fmemopen(curr_scanline + 1, sizeof(unsigned char) * scanline_len, "r");
+        if (hdr.bit_depth == 8 && hdr.colour_type == 2) {
+            for (int i = 0; i < hdr.width; i++) {
+                fread(&Image[scanline_num][i].red, sizeof(uint8_t), 1, scanline);
+                fread(&Image[scanline_num][i].green, sizeof(uint8_t), 1, scanline);
+                fread(&Image[scanline_num][i].blue, sizeof(uint8_t), 1, scanline);
+            }
+        }
+        else if (hdr.bit_depth == 16 && hdr.colour_type == 2) {
+            for (int i = 0; i < hdr.width; i++) {
+                uint16_t buff;
+                fread(&buff, sizeof(buff), 1, scanline);
+                Image[scanline_num][i].red = (0xFF * buff) / 0xFFFF;
+                fread(&buff, sizeof(buff), 1, scanline);
+                Image[scanline_num][i].green = (0xFF * buff) / 0xFFFF;
+                fread(&buff, sizeof(buff), 1, scanline);
+                Image[scanline_num][i].blue = (0xFF * buff) / 0xFFFF;
+            }
+        }
+
+        printf("From them scanline data: ");
         for (int i = 0; i < scanline_len; i++) {
             if (i == 0)
                 continue;
@@ -177,7 +206,13 @@ int main(int argc, char *argv[]) {
         }
         putchar(10);
 
+        printf("From them triples:       ");
+        for (int i = 0; i < hdr.width; i++) {
+            printf("%02X %02X %02X ", Image[scanline_num][i].red, Image[scanline_num][i].green, Image[scanline_num][i].blue);
+        }
+        putchar(10);
 
+        fclose(scanline);
     }
 
     free(uncompressed_image_data);
