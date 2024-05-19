@@ -30,4 +30,14 @@ typedef struct point {
     int y;
 } point;
 
+typedef struct Image {
+    point imagedimensions;
+    triple **imagedata;
+} image; 
+
+typedef struct Greyimage {
+    point imagedimensions;
+    uint8_t **imagedata;
+} greyimage;
+
 #endif // !STRUCTS_H
