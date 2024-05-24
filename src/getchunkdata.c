@@ -49,6 +49,7 @@ int get_image_data(FILE *imagefile, unsigned char **ptr_to_image_data, int *ptr_
     }
 
     fread(*ptr_to_image_data + *ptr_to_idata_size, chunk_length * sizeof(unsigned char), 1, imagefile);
+
     *ptr_to_idata_size += chunk_length;
     return 0;
 }

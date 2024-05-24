@@ -1,3 +1,5 @@
+#include "hdr/structs.h"
+#include <math.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -98,5 +100,40 @@ char lumtochar(uint8_t lum) {
     }
 
     return '~';
+}
+
+
+int blur_image(greyimage *src, greyimage *dest) {
+    int kernelsize = 7;
+    float kernel[][7] = {
+        {0.00000067, 0.00002292, 0.00019117, 0.00038771, 0.00019117, 0.00002292, 0.00000067},
+        {0.00002292, 0.00078633, 0.00655965, 0.01330373, 0.00655965, 0.00078633, 0.00002292},
+        {0.00019117, 0.00655965, 0.05472157, 0.11098164, 0.05472157, 0.00655965, 0.00019117},
+        {0.00038771, 0.01330373, 0.11098164, 0.22508352, 0.11098164, 0.01330373, 0.00038771},
+        {0.00019117, 0.00655965, 0.05472157, 0.11098164, 0.05472157, 0.00655965, 0.00019117},
+        {0.00002292, 0.00078633, 0.00655965, 0.01330373, 0.00655965, 0.00078633, 0.00002292},
+        {0.00000067, 0.00002292, 0.00019117, 0.00038771, 0.00019117, 0.00002292, 0.00000067}
+    };
+    
+    int offset_start = -1 * ((kernelsize - 1) / 2);
+    int offset_end = ((kernelsize - 1) / 2);
+
+    point cursor = {0};
+    for (cursor.y = 0; cursor.y < src->imagedimensions.y; cursor.y++) {
+        for (cursor.x = 0; cursor.x < src->imagedimensions.x; cursor.x++) {
+            float sum = 0;
+            for (int dy = offset_start; dy <= offset_end; dy++) {
+                for (int dx = offset_start; dx <= offset_end; dx++) {
+                    if (cursor.y + dy < src->imagedimensions.y && cursor.y + dy >= 0 && cursor.x + dx < src->imagedimensions.x && cursor.x + dx >= 0) {
+                        sum += src->imagedata[cursor.y + dy][cursor.x + dx] * kernel[(kernelsize / 2) + dy][(kernelsize / 2) + dx];
+                    }
+                }
+            }
+
+            dest->imagedata[cursor.y][cursor.x] = round(sum);
+        }
+    }
+
+    return 0;
 }
 
