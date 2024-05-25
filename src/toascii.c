@@ -122,15 +122,17 @@ int blur_image(greyimage *src, greyimage *dest) {
     for (cursor.y = 0; cursor.y < src->imagedimensions.y; cursor.y++) {
         for (cursor.x = 0; cursor.x < src->imagedimensions.x; cursor.x++) {
             float sum = 0;
+            float kernel_sum = 0;
             for (int dy = offset_start; dy <= offset_end; dy++) {
                 for (int dx = offset_start; dx <= offset_end; dx++) {
                     if (cursor.y + dy < src->imagedimensions.y && cursor.y + dy >= 0 && cursor.x + dx < src->imagedimensions.x && cursor.x + dx >= 0) {
                         sum += src->imagedata[cursor.y + dy][cursor.x + dx] * kernel[(kernelsize / 2) + dy][(kernelsize / 2) + dx];
+                        kernel_sum += kernel[(kernelsize / 2) + dy][(kernelsize / 2) + dx];
                     }
                 }
             }
 
-            dest->imagedata[cursor.y][cursor.x] = round(sum);
+            dest->imagedata[cursor.y][cursor.x] = round(sum / kernel_sum);
         }
     }
 

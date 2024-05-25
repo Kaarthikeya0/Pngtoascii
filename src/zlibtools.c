@@ -52,5 +52,11 @@ int decompress(unsigned char *image_data, int idata_size, unsigned char **ptr_to
 
     (void) inflateEnd(&strm);
 
+    /*for (int i = 0; i < *uncompressed_data_used_data; i++) {
+        printf("%02X ", (*ptr_to_uncompressed_image_data)[i]);
+        if ((i + 1) % 8 == 0)
+            putchar(10);
+    }*/
+
     return 0;
 }

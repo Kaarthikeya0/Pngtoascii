@@ -12,7 +12,6 @@
 
 int image_to_memory(struct imageHeader hdr, plteArray plt, FILE *imagefile, unsigned char **image_data, int *idata_size, unsigned char **uncompressed_image_data) {
 
-    printf("*idata_size = %d\n", *idata_size);
     char chunk_type[] = "HONK";
 
     if (uncompressed_image_data == NULL) {
@@ -27,7 +26,6 @@ int image_to_memory(struct imageHeader hdr, plteArray plt, FILE *imagefile, unsi
     //main loop which runs through the file intil it hits a IEND chunk
     while (strcmp(chunk_type, iend) != 0) {
         uint32_t chunk_length = read_bytes_be32(imagefile);
-        printf("chunk_length = %d\n", chunk_length);
         fread(chunk_type, sizeof(char), 4, imagefile);
         if (isupper(chunk_type[0])) {
             if (strcmp(chunk_type, plte) == 0) {
@@ -51,7 +49,6 @@ int image_to_memory(struct imageHeader hdr, plteArray plt, FILE *imagefile, unsi
                     return 5;
                 }
                 else {
-                    printf("ftell(imagefile) = %ld\n", ftell(imagefile));
                     if (get_image_data(imagefile, image_data, idata_size, chunk_length)) {
                         return 6;
                     }
