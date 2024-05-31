@@ -10,7 +10,7 @@
 
 #define CHUNK 16384
 
-int image_to_memory(struct imageHeader hdr, plteArray plt, FILE *imagefile, unsigned char **image_data, int *idata_size, unsigned char **uncompressed_image_data) {
+int image_to_memory(struct imageHeader hdr, plteArray *plt, FILE *imagefile, unsigned char **image_data, int *idata_size, unsigned char **uncompressed_image_data) {
 
     char chunk_type[] = "HONK";
 
@@ -29,10 +29,10 @@ int image_to_memory(struct imageHeader hdr, plteArray plt, FILE *imagefile, unsi
         fread(chunk_type, sizeof(char), 4, imagefile);
         if (isupper(chunk_type[0])) {
             if (strcmp(chunk_type, plte) == 0) {
-                if (plt.pltearray == NULL && !(hdr.colour_type == 0 || hdr.colour_type == 4)) {
+                if (plt->pltearray == NULL && !(hdr.colour_type == 0 || hdr.colour_type == 4)) {
                     if (chunk_length % 3 == 0) {
-                        plt.nmemb = chunk_length / 3;
-                        if (get_colour_palette(imagefile, &plt)) {
+                        plt->nmemb = chunk_length / 3;
+                        if (get_colour_palette(imagefile, plt)) {
                             fprintf(stderr, "Reading PLTE chunk fail\n");
                             return 5;
                         }
@@ -44,7 +44,7 @@ int image_to_memory(struct imageHeader hdr, plteArray plt, FILE *imagefile, unsi
                 }
             }
             else if (strcmp(chunk_type, idat) == 0) {
-                if (hdr.colour_type == 3 && plt.pltearray == NULL) {
+                if (hdr.colour_type == 3 && plt->pltearray == NULL) {
                     fprintf(stderr, "PLTE chunk couldnt be found before first IDAT chunk in colour type 3\n");
                     return 5;
                 }

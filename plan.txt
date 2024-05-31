@@ -9,10 +9,12 @@
 5. Output that to command line or file depending on whether output file is given
 
 Command line flags required 
-Number of columns (--Rowlength) (need to work out default later)
-Input file (-i)
-Output file (-o) (out.txt default)
-Help (-h) (provide quick start)
+Number of columns (-r:/--Rowlength=) (need to work out default later = 200)
+Input file (-i:/--input=) (compulsory)
+Output file (-o:/--ouput=) (out.txt default how choose stdout?)
+Console (stdout) (-c/--console) (dont create an out.txt) (mutually exclusive with -o so code that how you will)
+Blur (-b/--blur) (no args)
+Help (-h/--help) (provide quick start)
 
 
 PNG chunks I care about alot at first

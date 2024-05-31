@@ -1,10 +1,9 @@
 // C headers
+#include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <zlib.h>
 
 // my headers
 #include "hdr/pngtests.h"
@@ -19,7 +18,7 @@
 
 #define CHUNK 16384
 
-int pngtostring(char *pngfile, char **dest, int target_rowlen, bool blur) {
+int pngtostring(char *pngfile, char **dest, int target_rowlen, bool blur, bool switch_chars) {
 
     FILE *imagefile = fopen(pngfile, "rb");
 
@@ -63,11 +62,6 @@ int pngtostring(char *pngfile, char **dest, int target_rowlen, bool blur) {
         return 5;
     }
 
-    if (hdr.colour_type == 3) {
-        fprintf(stderr, "Not implemented yet!\n");
-        return 5;
-    }
-
     // skip CRC for IHDR 
     fseek(imagefile, 4, SEEK_CUR);
 
@@ -82,11 +76,10 @@ int pngtostring(char *pngfile, char **dest, int target_rowlen, bool blur) {
 
     int idata_size = 0;
 
-    if (image_to_memory(hdr, plt, imagefile, &image_data, &idata_size, &uncompressed_image_data)) {
+    if (image_to_memory(hdr, &plt, imagefile, &image_data, &idata_size, &uncompressed_image_data)) {
         perror("Cry");
         return 4;
     }
-
 
     if (decompress(image_data, idata_size, &uncompressed_image_data, &uncompressed_data_total_size, &uncompressed_data_used_data))
         return 7;
@@ -97,7 +90,7 @@ int pngtostring(char *pngfile, char **dest, int target_rowlen, bool blur) {
     }
     
 
-    if (data_to_struct(hdr, &ogimage, uncompressed_image_data, uncompressed_data_used_data)) {
+    if (data_to_struct(hdr, plt, &ogimage, uncompressed_image_data, uncompressed_data_used_data)) {
         fprintf(stderr, "Something went wrong\n");
         return 4;
     }
@@ -112,7 +105,11 @@ int pngtostring(char *pngfile, char **dest, int target_rowlen, bool blur) {
     for (cursor.y = 0; cursor.y < ogimage.imagedimensions.y; cursor.y++) {
         for (cursor.x = 0; cursor.x < ogimage.imagedimensions.x; cursor.x++) {
             float pixel_lumvalue = (float) (ogimage.imagedata[cursor.y][cursor.x].red + ogimage.imagedata[cursor.y][cursor.x].green + ogimage.imagedata[cursor.y][cursor.x].blue) / 3;
-            lumvalues.imagedata[cursor.y][cursor.x] = UINT8_MAX - pixel_lumvalue;
+            if (!switch_chars)
+                lumvalues.imagedata[cursor.y][cursor.x] = UINT8_MAX - pixel_lumvalue;
+            else
+                lumvalues.imagedata[cursor.y][cursor.x] = pixel_lumvalue;
+
         }
     }
 
@@ -132,9 +129,7 @@ int pngtostring(char *pngfile, char **dest, int target_rowlen, bool blur) {
         
 
     int scale = lumvalues.imagedimensions.x / (target_rowlen / 2);
-    if (lumvalues.imagedimensions.x < target_rowlen) {
-        scale = 1;
-    }
+    if (scale == 0) scale = 1;
 
     int counter = 0;
     for (cursor.y = 0; cursor.y < lumvalues.imagedimensions.y; cursor.y += scale) {
@@ -144,22 +139,23 @@ int pngtostring(char *pngfile, char **dest, int target_rowlen, bool blur) {
         counter++;
     }
 
-    *dest = malloc((counter + 1) * sizeof(char));
+    *dest = calloc((counter + 1), sizeof(char));
     (*dest)[counter] = '\0';
 
-    FILE *destination = fmemopen(*dest, counter, "w");
+    char *destination = *dest;
+    int dest_byte_cursor = 0;
     for (cursor.y = 0; cursor.y < lumvalues.imagedimensions.y; cursor.y += scale) {
         for (cursor.x = 0; cursor.x < lumvalues.imagedimensions.x; cursor.x += scale) {
             uint8_t lum = blur ? blurimage.imagedata[cursor.y][cursor.x] : lumvalues.imagedata[cursor.y][cursor.x];
-            putc(lumtochar(lum), destination);
-            putc(lumtochar(lum), destination);
+            char c = lumtochar(lum);
+            destination[dest_byte_cursor++] = c;
+            destination[dest_byte_cursor++] = c;
         }
-        putc(10, destination);
+        destination[dest_byte_cursor++] = '\n';
     }
-    fclose(destination);
 
     freegreyimage(&lumvalues);
-    freegreyimage(&blurimage);
+    if (blur) freegreyimage(&blurimage);
     freeimage(&ogimage);
     free(uncompressed_image_data);
     free(image_data);

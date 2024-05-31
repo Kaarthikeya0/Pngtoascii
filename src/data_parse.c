@@ -1,12 +1,12 @@
-#include <stdint.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "hdr/data_parse.h"
 #include "hdr/structs.h"
 
-int data_to_struct(struct imageHeader hdr, image *dst, unsigned char *uncompressed_image_data, int uncompressed_data_size) {
+int data_to_struct(struct imageHeader hdr, plteArray plt, image *dst, unsigned char *uncompressed_image_data, int uncompressed_data_size) {
 
     int scanline_len = uncompressed_data_size / hdr.height;
     int bits_per_pixel = ((scanline_len - 1) * 8) / hdr.width;
@@ -26,12 +26,14 @@ int data_to_struct(struct imageHeader hdr, image *dst, unsigned char *uncompress
             return filter_type;
         }
 
-        FILE *scanline = fmemopen(curr_scanline + 1, sizeof(unsigned char) * scanline_len, "r");
+        unsigned char scanline[scanline_len - 1];
+        int byte_number = 0;
+        memcpy(scanline, curr_scanline + 1, scanline_len - 1);
         if (hdr.bit_depth < 8 && hdr.colour_type == 0) {
             int bit_count = 0;
             uint8_t buff;
             for (int i = 0; i < scanline_len - 1; i++) {
-                fread(&buff, sizeof(buff), 1, scanline);
+                buff = scanline[byte_number++];
                 for (int j = 8 - hdr.bit_depth; j >= 0 && bit_count < hdr.width; j -= hdr.bit_depth, bit_count++) {
                     uint8_t value = (buff >> j) & ((1 << hdr.bit_depth) - 1);
                     uint8_t mapped_value = (value * 255) / ((1 << hdr.bit_depth) - 1);
@@ -41,10 +43,21 @@ int data_to_struct(struct imageHeader hdr, image *dst, unsigned char *uncompress
                 }
             }
         }
+        else if (hdr.bit_depth < 8 && hdr.colour_type == 3) {
+            int bit_count = 0;
+            uint8_t buff;
+            for (int i = 0; i < scanline_len - 1; i++) {
+                buff = scanline[byte_number++];
+                for (int j = 8 - hdr.bit_depth; j >= 0 && bit_count < hdr.width; j -= hdr.bit_depth, bit_count++) {
+                    uint8_t value = (buff >> j) & ((1 << hdr.bit_depth) - 1);
+                    dst->imagedata[scanline_num][bit_count] = plt.pltearray[value];
+                }
+            }
+        }
         else if (hdr.bit_depth == 8 && hdr.colour_type == 0) {
             uint8_t buff;
             for (int i = 0; i < hdr.width; i++) {
-                fread(&buff, sizeof(buff), 1, scanline);
+                buff = scanline[byte_number++];
                 dst->imagedata[scanline_num][i].red = buff;
                 dst->imagedata[scanline_num][i].green = buff;
                 dst->imagedata[scanline_num][i].blue = buff;
@@ -52,33 +65,41 @@ int data_to_struct(struct imageHeader hdr, image *dst, unsigned char *uncompress
         }
         else if (hdr.bit_depth == 8 && hdr.colour_type == 2) {
             for (int i = 0; i < hdr.width; i++) {
-                fread(&dst->imagedata[scanline_num][i].red, sizeof(uint8_t), 1, scanline);
-                fread(&dst->imagedata[scanline_num][i].green, sizeof(uint8_t), 1, scanline);
-                fread(&dst->imagedata[scanline_num][i].blue, sizeof(uint8_t), 1, scanline);
+                dst->imagedata[scanline_num][i].red = scanline[byte_number++];
+                dst->imagedata[scanline_num][i].green = scanline[byte_number++];
+                dst->imagedata[scanline_num][i].blue = scanline[byte_number++];
+            }
+        }
+        else if (hdr.bit_depth == 8 && hdr.colour_type == 3) {
+            uint8_t buff;
+            for (int i = 0; i < hdr.width; i++) {
+                buff = scanline[byte_number++];
+                dst->imagedata[scanline_num][i] = plt.pltearray[buff];
             }
         }
         else if (hdr.bit_depth == 8 && hdr.colour_type == 4) {
             uint8_t buff;
             for (int i = 0; i < hdr.width; i++) {
-                fread(&buff, sizeof(buff), 1, scanline);
+                buff = scanline[byte_number++];
                 dst->imagedata[scanline_num][i].red = buff;
                 dst->imagedata[scanline_num][i].green = buff;
                 dst->imagedata[scanline_num][i].blue = buff;
-                fseek(scanline, 1, SEEK_CUR);
+                byte_number++;
             }
         }
         else if (hdr.bit_depth == 8 && hdr.colour_type == 6) {
             for (int i = 0; i < hdr.width; i++) {
-                fread(&dst->imagedata[scanline_num][i].red, sizeof(uint8_t), 1, scanline);
-                fread(&dst->imagedata[scanline_num][i].green, sizeof(uint8_t), 1, scanline);
-                fread(&dst->imagedata[scanline_num][i].blue, sizeof(uint8_t), 1, scanline);
-                fseek(scanline, 1, SEEK_CUR);
+                dst->imagedata[scanline_num][i].red = scanline[byte_number++];
+                dst->imagedata[scanline_num][i].green = scanline[byte_number++];
+                dst->imagedata[scanline_num][i].blue = scanline[byte_number++];
+                byte_number++;
             }
         }
         else if (hdr.bit_depth == 16 && hdr.colour_type == 0) {
             uint16_t buff;
             for (int i = 0; i < hdr.width; i++) {
-                fread(&buff, sizeof(buff), 1, scanline);
+                buff = scanline[byte_number++];
+                buff = (buff << 8) + scanline[byte_number++];
                 dst->imagedata[scanline_num][i].red = (0xFF * buff) / 0xFFFF;
                 dst->imagedata[scanline_num][i].green = (0xFF * buff) / 0xFFFF;
                 dst->imagedata[scanline_num][i].blue = (0xFF * buff) / 0xFFFF;
@@ -87,37 +108,43 @@ int data_to_struct(struct imageHeader hdr, image *dst, unsigned char *uncompress
         else if (hdr.bit_depth == 16 && hdr.colour_type == 2) {
             uint16_t buff;
             for (int i = 0; i < hdr.width; i++) {
-                fread(&buff, sizeof(buff), 1, scanline);
+                buff = scanline[byte_number++];
+                buff = (buff << 8) + scanline[byte_number++];
                 dst->imagedata[scanline_num][i].red = (0xFF * buff) / 0xFFFF;
-                fread(&buff, sizeof(buff), 1, scanline);
+                buff = scanline[byte_number++];
+                buff = (buff << 8) + scanline[byte_number++];
                 dst->imagedata[scanline_num][i].green = (0xFF * buff) / 0xFFFF;
-                fread(&buff, sizeof(buff), 1, scanline);
+                buff = scanline[byte_number++];
+                buff = (buff << 8) + scanline[byte_number++];
                 dst->imagedata[scanline_num][i].blue = (0xFF * buff) / 0xFFFF;
             }
         }
         else if (hdr.bit_depth == 16 && hdr.colour_type == 4) {
             uint16_t buff;
             for (int i = 0; i < hdr.width; i++) {
-                fread(&buff, sizeof(buff), 1, scanline);
+                buff = scanline[byte_number++];
+                buff = (buff << 8) + scanline[byte_number++];
                 dst->imagedata[scanline_num][i].red = (0xFF * buff) / 0xFFFF;
                 dst->imagedata[scanline_num][i].green = (0xFF * buff) / 0xFFFF;
                 dst->imagedata[scanline_num][i].blue = (0xFF * buff) / 0xFFFF;
-                fseek(scanline, 2, SEEK_CUR);
+                byte_number += 2;
             }
         }
         else if (hdr.bit_depth == 16 && hdr.colour_type == 6) {
             uint16_t buff;
             for (int i = 0; i < hdr.width; i++) {
-                fread(&buff, sizeof(buff), 1, scanline);
+                buff = scanline[byte_number++];
+                buff = (buff << 8) + scanline[byte_number++];
                 dst->imagedata[scanline_num][i].red = (0xFF * buff) / 0xFFFF;
-                fread(&buff, sizeof(buff), 1, scanline);
+                buff = scanline[byte_number++];
+                buff = (buff << 8) + scanline[byte_number++];
                 dst->imagedata[scanline_num][i].green = (0xFF * buff) / 0xFFFF;
-                fread(&buff, sizeof(buff), 1, scanline);
+                buff = scanline[byte_number++];
+                buff = (buff << 8) + scanline[byte_number++];
                 dst->imagedata[scanline_num][i].blue = (0xFF * buff) / 0xFFFF;
-                fseek(scanline, 2, SEEK_CUR);
+                byte_number += 2;
             }
         }
-        fclose(scanline);
     }
 
     return 0;
