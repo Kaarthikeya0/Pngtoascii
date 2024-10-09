@@ -139,3 +139,45 @@ int blur_image(greyimage *src, greyimage *dest) {
     return 0;
 }
 
+int blur_image_rgb(image *src, image *dest) {
+    int kernelsize = 7;
+    float kernel[][7] = {
+        {0.00000067, 0.00002292, 0.00019117, 0.00038771, 0.00019117, 0.00002292, 0.00000067},
+        {0.00002292, 0.00078633, 0.00655965, 0.01330373, 0.00655965, 0.00078633, 0.00002292},
+        {0.00019117, 0.00655965, 0.05472157, 0.11098164, 0.05472157, 0.00655965, 0.00019117},
+        {0.00038771, 0.01330373, 0.11098164, 0.22508352, 0.11098164, 0.01330373, 0.00038771},
+        {0.00019117, 0.00655965, 0.05472157, 0.11098164, 0.05472157, 0.00655965, 0.00019117},
+        {0.00002292, 0.00078633, 0.00655965, 0.01330373, 0.00655965, 0.00078633, 0.00002292},
+        {0.00000067, 0.00002292, 0.00019117, 0.00038771, 0.00019117, 0.00002292, 0.00000067}
+    };
+    
+    int offset_start = -1 * ((kernelsize - 1) / 2);
+    int offset_end = ((kernelsize - 1) / 2);
+
+    point cursor = {0};
+    for (cursor.y = 0; cursor.y < src->imagedimensions.y; cursor.y++) {
+        for (cursor.x = 0; cursor.x < src->imagedimensions.x; cursor.x++) {
+            float sumr = 0;
+            float sumg = 0;
+            float sumb = 0;
+            float kernel_sum = 0;
+            for (int dy = offset_start; dy <= offset_end; dy++) {
+                for (int dx = offset_start; dx <= offset_end; dx++) {
+                    if (cursor.y + dy < src->imagedimensions.y && cursor.y + dy >= 0 && cursor.x + dx < src->imagedimensions.x && cursor.x + dx >= 0) {
+                        sumr += src->imagedata[cursor.y + dy][cursor.x + dx].red * kernel[(kernelsize / 2) + dy][(kernelsize / 2) + dx];
+                        sumg += src->imagedata[cursor.y + dy][cursor.x + dx].green * kernel[(kernelsize / 2) + dy][(kernelsize / 2) + dx];
+                        sumb += src->imagedata[cursor.y + dy][cursor.x + dx].blue * kernel[(kernelsize / 2) + dy][(kernelsize / 2) + dx];
+                        kernel_sum += kernel[(kernelsize / 2) + dy][(kernelsize / 2) + dx];
+                    }
+                }
+            }
+
+            dest->imagedata[cursor.y][cursor.x].red = round(sumr / kernel_sum);
+            dest->imagedata[cursor.y][cursor.x].green = round(sumg / kernel_sum);
+            dest->imagedata[cursor.y][cursor.x].blue = round(sumb / kernel_sum);
+        }
+    }
+
+    return 0;
+}
+

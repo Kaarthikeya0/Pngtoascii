@@ -36,10 +36,11 @@ int data_to_struct(struct imageHeader hdr, plteArray plt, image *dst, unsigned c
                 buff = scanline[byte_number++];
                 for (int j = 8 - hdr.bit_depth; j >= 0 && bit_count < hdr.width; j -= hdr.bit_depth, bit_count++) {
                     uint8_t value = (buff >> j) & ((1 << hdr.bit_depth) - 1);
-                    uint8_t mapped_value = (value * 255) / ((1 << hdr.bit_depth) - 1);
+                    uint8_t mapped_value = (value * UINT8_MAX) / ((1 << hdr.bit_depth) - 1);
                     dst->imagedata[scanline_num][bit_count].red = mapped_value;
                     dst->imagedata[scanline_num][bit_count].green = mapped_value;
                     dst->imagedata[scanline_num][bit_count].blue = mapped_value;
+                    dst->imagedata[scanline_num][bit_count].alpha = UINT8_MAX;
                 }
             }
         }
@@ -61,6 +62,7 @@ int data_to_struct(struct imageHeader hdr, plteArray plt, image *dst, unsigned c
                 dst->imagedata[scanline_num][i].red = buff;
                 dst->imagedata[scanline_num][i].green = buff;
                 dst->imagedata[scanline_num][i].blue = buff;
+                dst->imagedata[scanline_num][i].alpha = UINT8_MAX;
             }
         }
         else if (hdr.bit_depth == 8 && hdr.colour_type == 2) {
@@ -68,6 +70,7 @@ int data_to_struct(struct imageHeader hdr, plteArray plt, image *dst, unsigned c
                 dst->imagedata[scanline_num][i].red = scanline[byte_number++];
                 dst->imagedata[scanline_num][i].green = scanline[byte_number++];
                 dst->imagedata[scanline_num][i].blue = scanline[byte_number++];
+                dst->imagedata[scanline_num][i].alpha = UINT8_MAX;
             }
         }
         else if (hdr.bit_depth == 8 && hdr.colour_type == 3) {
@@ -84,7 +87,7 @@ int data_to_struct(struct imageHeader hdr, plteArray plt, image *dst, unsigned c
                 dst->imagedata[scanline_num][i].red = buff;
                 dst->imagedata[scanline_num][i].green = buff;
                 dst->imagedata[scanline_num][i].blue = buff;
-                byte_number++;
+                dst->imagedata[scanline_num][i].alpha = scanline[byte_number++];
             }
         }
         else if (hdr.bit_depth == 8 && hdr.colour_type == 6) {
@@ -92,7 +95,7 @@ int data_to_struct(struct imageHeader hdr, plteArray plt, image *dst, unsigned c
                 dst->imagedata[scanline_num][i].red = scanline[byte_number++];
                 dst->imagedata[scanline_num][i].green = scanline[byte_number++];
                 dst->imagedata[scanline_num][i].blue = scanline[byte_number++];
-                byte_number++;
+                dst->imagedata[scanline_num][i].alpha = scanline[byte_number++];
             }
         }
         else if (hdr.bit_depth == 16 && hdr.colour_type == 0) {
@@ -100,9 +103,10 @@ int data_to_struct(struct imageHeader hdr, plteArray plt, image *dst, unsigned c
             for (int i = 0; i < hdr.width; i++) {
                 buff = scanline[byte_number++];
                 buff = (buff << 8) + scanline[byte_number++];
-                dst->imagedata[scanline_num][i].red = (0xFF * buff) / 0xFFFF;
-                dst->imagedata[scanline_num][i].green = (0xFF * buff) / 0xFFFF;
-                dst->imagedata[scanline_num][i].blue = (0xFF * buff) / 0xFFFF;
+                dst->imagedata[scanline_num][i].red = (0xFF *  buff) / 0xFFFF;
+                dst->imagedata[scanline_num][i].green = (0xFF *  buff) / 0xFFFF;
+                dst->imagedata[scanline_num][i].blue = (0xFF *  buff) / 0xFFFF;
+                dst->imagedata[scanline_num][i].alpha = UINT8_MAX;
             }
         }
         else if (hdr.bit_depth == 16 && hdr.colour_type == 2) {
@@ -110,13 +114,14 @@ int data_to_struct(struct imageHeader hdr, plteArray plt, image *dst, unsigned c
             for (int i = 0; i < hdr.width; i++) {
                 buff = scanline[byte_number++];
                 buff = (buff << 8) + scanline[byte_number++];
-                dst->imagedata[scanline_num][i].red = (0xFF * buff) / 0xFFFF;
+                dst->imagedata[scanline_num][i].red = (0xFF *  buff) / 0xFFFF;
                 buff = scanline[byte_number++];
                 buff = (buff << 8) + scanline[byte_number++];
-                dst->imagedata[scanline_num][i].green = (0xFF * buff) / 0xFFFF;
+                dst->imagedata[scanline_num][i].green = (0xFF *  buff) / 0xFFFF;
                 buff = scanline[byte_number++];
                 buff = (buff << 8) + scanline[byte_number++];
-                dst->imagedata[scanline_num][i].blue = (0xFF * buff) / 0xFFFF;
+                dst->imagedata[scanline_num][i].blue = (0xFF *  buff) / 0xFFFF;
+                dst->imagedata[scanline_num][i].alpha = UINT8_MAX;
             }
         }
         else if (hdr.bit_depth == 16 && hdr.colour_type == 4) {
@@ -124,10 +129,12 @@ int data_to_struct(struct imageHeader hdr, plteArray plt, image *dst, unsigned c
             for (int i = 0; i < hdr.width; i++) {
                 buff = scanline[byte_number++];
                 buff = (buff << 8) + scanline[byte_number++];
-                dst->imagedata[scanline_num][i].red = (0xFF * buff) / 0xFFFF;
-                dst->imagedata[scanline_num][i].green = (0xFF * buff) / 0xFFFF;
-                dst->imagedata[scanline_num][i].blue = (0xFF * buff) / 0xFFFF;
-                byte_number += 2;
+                dst->imagedata[scanline_num][i].red = (0xFF *  buff) / 0xFFFF;
+                dst->imagedata[scanline_num][i].green = (0xFF *  buff) / 0xFFFF;
+                dst->imagedata[scanline_num][i].blue = (0xFF *  buff) / 0xFFFF;
+                buff = scanline[byte_number++];
+                buff = (buff << 8) + scanline[byte_number++];
+                dst->imagedata[scanline_num][i].alpha = (0xFF *  buff) / 0xFFFF;
             }
         }
         else if (hdr.bit_depth == 16 && hdr.colour_type == 6) {
@@ -135,14 +142,16 @@ int data_to_struct(struct imageHeader hdr, plteArray plt, image *dst, unsigned c
             for (int i = 0; i < hdr.width; i++) {
                 buff = scanline[byte_number++];
                 buff = (buff << 8) + scanline[byte_number++];
-                dst->imagedata[scanline_num][i].red = (0xFF * buff) / 0xFFFF;
+                dst->imagedata[scanline_num][i].red = (0xFF *  buff) / 0xFFFF;
                 buff = scanline[byte_number++];
                 buff = (buff << 8) + scanline[byte_number++];
-                dst->imagedata[scanline_num][i].green = (0xFF * buff) / 0xFFFF;
+                dst->imagedata[scanline_num][i].green = (0xFF *  buff) / 0xFFFF;
                 buff = scanline[byte_number++];
                 buff = (buff << 8) + scanline[byte_number++];
-                dst->imagedata[scanline_num][i].blue = (0xFF * buff) / 0xFFFF;
-                byte_number += 2;
+                dst->imagedata[scanline_num][i].blue = (0xFF *  buff) / 0xFFFF;
+                buff = scanline[byte_number++];
+                buff = (buff << 8) + scanline[byte_number++];
+                dst->imagedata[scanline_num][i].alpha = (0xFF *  buff) / 0xFFFF;
             }
         }
     }

@@ -18,7 +18,7 @@
 
 #define CHUNK 16384
 
-int pngtostring(char *pngfile, char **dest, int target_rowlen, bool blur, bool switch_chars) {
+int pngtostring(char *pngfile,struct coloured_string *dest, int target_rowlen, bool blur, bool switch_chars, bool square) {
 
     FILE *imagefile = fopen(pngfile, "rb");
 
@@ -105,7 +105,8 @@ int pngtostring(char *pngfile, char **dest, int target_rowlen, bool blur, bool s
     for (cursor.y = 0; cursor.y < ogimage.imagedimensions.y; cursor.y++) {
         for (cursor.x = 0; cursor.x < ogimage.imagedimensions.x; cursor.x++) {
             float pixel_lumvalue = (float) (ogimage.imagedata[cursor.y][cursor.x].red + ogimage.imagedata[cursor.y][cursor.x].green + ogimage.imagedata[cursor.y][cursor.x].blue) / 3;
-            if (!switch_chars)
+            //float pixel_lumvalue = 0.299 * ogimage.imagedata[cursor.y][cursor.x].red + 0.587 * ogimage.imagedata[cursor.y][cursor.x].green + 0.114 * ogimage.imagedata[cursor.y][cursor.x].blue;
+            if (switch_chars)
                 lumvalues.imagedata[cursor.y][cursor.x] = UINT8_MAX - pixel_lumvalue;
             else
                 lumvalues.imagedata[cursor.y][cursor.x] = pixel_lumvalue;
@@ -116,42 +117,68 @@ int pngtostring(char *pngfile, char **dest, int target_rowlen, bool blur, bool s
 
 
     greyimage blurimage;
+    image rgblurimage;
     if (blur) {
         if (constructgreyimage(&blurimage, lumvalues.imagedimensions))
             return 5;
 
-        if (blur_image(&lumvalues, &blurimage)) {
+        if (constructimage(&rgblurimage, lumvalues.imagedimensions))
+            return 5;
+
+        if (blur_image_rgb(&ogimage, &rgblurimage)) {
             perror("Blur image failed");
             return 6;
+        }
+        
+        for (cursor.y = 0; cursor.y < ogimage.imagedimensions.y; cursor.y++) {
+            for (cursor.x = 0; cursor.x < ogimage.imagedimensions.x; cursor.x++) {
+                triple pixel = rgblurimage.imagedata[cursor.y][cursor.x];
+                float pixel_lumvalue = 0.299 * pixel.red + 0.587 * pixel.green + 0.114 * pixel.blue;
+                if (switch_chars)
+                    blurimage.imagedata[cursor.y][cursor.x] = UINT8_MAX - pixel_lumvalue;
+                else
+                    blurimage.imagedata[cursor.y][cursor.x] = pixel_lumvalue;
+
+            }
         }
     }
 
         
 
-    int scale = lumvalues.imagedimensions.x / (target_rowlen / 2);
+    int scale = square ? lumvalues.imagedimensions.x / target_rowlen : lumvalues.imagedimensions.x / (target_rowlen / 2);
     if (scale == 0) scale = 1;
 
     int counter = 0;
+    point counting = {0};
     for (cursor.y = 0; cursor.y < lumvalues.imagedimensions.y; cursor.y += scale) {
         for (cursor.x = 0; cursor.x < lumvalues.imagedimensions.x; cursor.x += scale) {
-            counter += 2;
+            counter += square ? 1 : 2;
         }
         counter++;
     }
 
-    *dest = calloc((counter + 1), sizeof(char));
-    (*dest)[counter] = '\0';
+    for (cursor.x = 0; cursor.x < lumvalues.imagedimensions.x; cursor.x += scale) counting.x += square ? 1 : 2;
+    for (cursor.y = 0; cursor.y < lumvalues.imagedimensions.y; cursor.y += scale) counting.y += 1;
 
-    char *destination = *dest;
+    dest->str = calloc((counter + 1), sizeof(struct coloured_string));
+    dest->str[counter].character = '\0';
+    dest->dimensions = counting;
+
+    struct coloured_char *destination = dest->str;
     int dest_byte_cursor = 0;
     for (cursor.y = 0; cursor.y < lumvalues.imagedimensions.y; cursor.y += scale) {
         for (cursor.x = 0; cursor.x < lumvalues.imagedimensions.x; cursor.x += scale) {
             uint8_t lum = blur ? blurimage.imagedata[cursor.y][cursor.x] : lumvalues.imagedata[cursor.y][cursor.x];
             char c = lumtochar(lum);
-            destination[dest_byte_cursor++] = c;
-            destination[dest_byte_cursor++] = c;
+            destination[dest_byte_cursor].character = c;
+            destination[dest_byte_cursor++].colour = blur ? rgblurimage.imagedata[cursor.y][cursor.x] : ogimage.imagedata[cursor.y][cursor.x];
+            if (!square) {
+                destination[dest_byte_cursor].character = c;
+                destination[dest_byte_cursor++].colour = blur ? rgblurimage.imagedata[cursor.y][cursor.x] : ogimage.imagedata[cursor.y][cursor.x];
+            }
         }
-        destination[dest_byte_cursor++] = '\n';
+        destination[dest_byte_cursor].character = '\n';
+        destination[dest_byte_cursor++].colour = (triple) {.red = 0, .green = 0, .blue = 0, .alpha = 0};
     }
 
     freegreyimage(&lumvalues);

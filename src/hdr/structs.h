@@ -17,7 +17,7 @@ typedef struct triple {
     uint8_t red;
     uint8_t green;
     uint8_t blue;
-    
+    uint8_t alpha;
 } triple;
 
 typedef struct pltearray {
@@ -39,5 +39,15 @@ typedef struct Greyimage {
     point imagedimensions;
     uint8_t **imagedata;
 } greyimage;
+
+struct coloured_char {
+    triple colour;
+    char character;
+};
+
+struct coloured_string {
+    point dimensions;
+    struct coloured_char *str;
+};
 
 #endif // !STRUCTS_H

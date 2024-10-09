@@ -2,6 +2,7 @@
 #include "hdr/structs.h"
 #include "hdr/getchunkdata.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -33,6 +34,7 @@ int get_colour_palette(FILE *imagefile, plteArray *colours) {
         (colours->pltearray)[i].red = read_byte(imagefile);
         (colours->pltearray)[i].green = read_byte(imagefile);
         (colours->pltearray)[i].blue = read_byte(imagefile);
+        (colours->pltearray)[i].alpha = UINT8_MAX;
     }
     return 0;
 }

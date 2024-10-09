@@ -1,7 +1,7 @@
 CCW = /etc/alternatives/x86_64-w64-mingw32-gcc
 CCL = gcc
 CC = $(CCL)
-CFLAGS+= -fsanitize=signed-integer-overflow -fsanitize=undefined -ggdb3 -O0 -std=c11 -Wall -Werror -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wshadow 
+CFLAGS+= -fsanitize=signed-integer-overflow -fsanitize=undefined -ggdb3 -O0 -std=c11 -Wall -Werror -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wshadow -Wpedantic
 LDLIBS+= -lm -lc -lz
 
 SRC_DIR = src
